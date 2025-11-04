@@ -1,0 +1,40 @@
+{
+  "name": "slotswapper",
+  "version": "1.0.0",
+  "description": "Backend service for managing and swapping user calendar timeslots.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "calendar",
+    "timeslot",
+    "scheduler",
+    "swap",
+    "swappable",
+    "peer-to-peer",
+    "express",
+    "nodejs",
+    "jwt",
+    "mongodb",
+    "api",
+    "backend",
+    "fullstack",
+    "internship",
+    "slot-swapper"
+  ],
+  "author": "shubham thakur",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
