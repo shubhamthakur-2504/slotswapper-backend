@@ -143,5 +143,5 @@ You can test endpoints using:
 
 ## 👨‍💻 Author
 
-### Shubham
+### Shubham Thakur
 Backend Developer — Node.js | Express | MongoDB | JWT
