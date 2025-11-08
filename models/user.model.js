@@ -25,8 +25,8 @@ const userSchema = new mongoose.Schema({
 
 
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-    this.password = await bcrypt.hash(this.password, 10)
+    if (!this.isModified('passwordHash')) return next();
+    this.passwordHash  = await bcrypt.hash(this.passwordHash , 10)
     next()
 })
 
@@ -35,21 +35,31 @@ userSchema.methods.verifyPassword = async function (password) {
 };
 
 userSchema.methods.generateAccessToken = function () {
-    return jwt.sign({
-        id: this._id,
-        user: this.userName
-    }, JWT_ACCESS_SECRET, { expiresIn: JWT_ACCESS_TOKEN_EXPIRY })
+    try {
+        
+        return jwt.sign({
+            id: this._id,
+            user: this.userName
+        }, JWT_ACCESS_SECRET, { expiresIn: `${JWT_ACCESS_TOKEN_EXPIRY}m` })
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 userSchema.methods.generateRefreshToken = async function () {
-    const token = jwt.sign({
-        id: this._id,
-        user: this.userName
-    }, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_TOKEN_EXPIRY })
+    try {
 
-    this.refreshToken = token
-    await this.save()
-    return token
+        const token = jwt.sign({
+            id: this._id,
+            user: this.userName
+        }, JWT_REFRESH_SECRET, { expiresIn: `${JWT_REFRESH_TOKEN_EXPIRY}d` })
+    
+        this.refreshToken = token
+        await this.save()
+        return token
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 export const User = mongoose.model('User', userSchema);

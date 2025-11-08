@@ -6,7 +6,7 @@ const router = Router();
 
 router.route("/register").post(register)
 router.route("/login").post(login)
-router.route("/refresh-access-token").post(auth, refreshAccessToken)
+router.route("/refresh-access-token").post(refreshAccessToken)
 router.route("/logout").post(auth, logout)
 router.route("/get-user").get(auth, getUser)
 

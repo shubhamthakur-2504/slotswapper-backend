@@ -7,7 +7,9 @@ import { checkEventOverlap, updateEventStatuses } from "../utils/eventHelper.js"
 
 
 const createEvent = asyncHandler(async (req, res) => {
-    const { title, startTime, endTime } = req.body
+    const { title } = req.body
+    let { startTime, endTime, status } = req.body
+    
     startTime = new Date(startTime)
     endTime = new Date(endTime)
 
@@ -23,10 +25,13 @@ const createEvent = asyncHandler(async (req, res) => {
         throw new apiError(400, "Can not create event in the past");
     }
 
+    if(!status){
+        status = "BUSY"
+    }
     await checkEventOverlap(req.user._id, startTime, endTime)
 
     try {
-        const event = await Event.create({ title, startTime, endTime, owner: req.user._id })
+        const event = await Event.create({ title, startTime, endTime, status, owner: req.user._id })
 
         return res.status(201).json(new apiResponse(201, event, "Event created successfully"))
 
@@ -76,8 +81,9 @@ const deleteEvent = asyncHandler(async (req, res) => {
 
 const updateEvent = asyncHandler(async (req, res) => {
     const { eventId } = req.params
-    const { title, startTime, endTime } = req.body
-
+    const { title  } = req.body
+    let { startTime, endTime } = req.body
+    
     if (!mongoose.isValidObjectId(eventId)) {
         return res.status(400).json(new apiResponse(400, null, "Invalid event id"));
     }
