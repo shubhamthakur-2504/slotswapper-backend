@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import asyncHandler from "../utils/asyncHandler";
-import apiError from "../utils/apiError";
-import apiResponse from "../utils/apiResponse";
+import asyncHandler from "../utils/asyncHandler.js";
+import apiError from "../utils/apiError.js";
+import apiResponse from "../utils/apiResponse.js";
 import { Swap } from "../models/swap.model.js";
 import { Event } from "../models/event.model.js";
 import { checkEventOverlap } from "../utils/eventHelper.js";
@@ -45,16 +45,16 @@ const requestSwap = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const swapEvent = await Swap.create({
+        const [swapEvent] = await Swap.create([{
             requester: req.user._id,
             responder: targetEvent.owner,
             mySlot: requesterEvent._id,
             theirSlot: targetEvent._id
-        }, { session });
+        }], { session });
 
         if (swapEvent) {
-            await requesterEvent.updateOne({ status: "SWAP_PENDING" });
-            await targetEvent.updateOne({ status: "SWAP_PENDING" });
+            await requesterEvent.updateOne({ status: "SWAP_PENDING" }, { session });
+            await targetEvent.updateOne({ status: "SWAP_PENDING" }, { session });
         }
 
         await session.commitTransaction();
@@ -71,7 +71,7 @@ const requestSwap = asyncHandler(async (req, res) => {
 
 const responseSwap = asyncHandler(async (req, res) => {
     const { swapId } = req.params;
-    const { accept } = req.body;
+    let { accept } = req.body;
 
     if (!mongoose.isValidObjectId(swapId)) {
         return res.status(400).json(new apiResponse(400, null, "Invalid swap id"));
@@ -185,9 +185,48 @@ const responseSwap = asyncHandler(async (req, res) => {
 
 
 const getAllSwappableEvents = asyncHandler(async (req, res) => {
-    const swappableEvents = await Event.find({ status: "SWAPPABLE", owner: { $ne: req.user._id } });
+    const swappableEvents = await Event.find({ status: "SWAPPABLE", owner: { $ne: req.user._id } }).select("-__v -updatedAt -createdAt").populate({
+        path: "owner",
+        select: "-__v -updatedAt -createdAt -passwordHash -refreshToken -email"
+    });;
     return res.status(200).json(new apiResponse(200, swappableEvents, "Swappable events fetched successfully"));
 });
 
 
-export { requestSwap, responseSwap, getAllSwappableEvents }
+const incomingRequestSwap = asyncHandler(async (req, res) => {
+    const incomingSwaps = await Swap.find({ responder: req.user._id }).populate([
+        {
+            path: "mySlot",
+            select: "-__v -updatedAt -createdAt"
+        },
+        {
+            path: "theirSlot",
+            select: "-__v -updatedAt -createdAt"
+        },
+        {
+            path: "requester",
+            select: "-__v -updatedAt -createdAt -passwordHash -refreshToken -email"
+        }
+    ]);
+    return res.status(200).json(new apiResponse(200, incomingSwaps, "Incoming swap requests fetched successfully"));
+});
+
+const outgoingRequestSwap = asyncHandler(async (req, res) => {
+    const outgoingSwaps = await Swap.find({ requester: req.user._id }).select("-__v -updatedAt -createdAt -requester").populate([
+        {
+            path: "mySlot",
+            select: "-__v -updatedAt -createdAt"
+        },
+        {
+            path: "theirSlot",
+            select: "-__v -updatedAt -createdAt"
+        },
+        {
+            path: "responder",
+            select: "-__v -updatedAt -createdAt -passwordHash -refreshToken -email"
+        }
+    ])
+    return res.status(200).json(new apiResponse(200, outgoingSwaps, "Outgoing swap requests fetched successfully"));
+});
+
+export { requestSwap, responseSwap, getAllSwappableEvents, incomingRequestSwap, outgoingRequestSwap }
