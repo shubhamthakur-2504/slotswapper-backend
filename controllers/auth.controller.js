@@ -29,8 +29,8 @@ const generateAccessToken = async (user) => {
 
 const generateRefreshAndAccessToken = async (userId) => {
     try {
-        const user = User.findById(userId)
-
+        const user = await User.findById(userId)
+        
         if (!user) return null
 
         const accessToken = await user.generateAccessToken()
@@ -63,7 +63,10 @@ const register = asyncHandler(async (req, res) => {
     }
 
     try {
-        const user = await User.create({ userName, email, password })
+        const user = await User.create({ 
+            userName:userName, 
+            email:email, 
+            passwordHash:password })
         const createdUser = await User.findById(user._id).select('-passwordHash -refreshToken')
         res.status(201).json(new apiResponse(201, createdUser, "User registered successfully"))
     } catch (error) {
@@ -91,12 +94,18 @@ const login = asyncHandler(async (req, res) => {
         }
 
         const isPasswordValid = await user.verifyPassword(password)
-
+        
         if (!isPasswordValid) {
             throw new apiError(401, "Invalid password")
         }
 
         const { refreshToken, accessToken } = await generateRefreshAndAccessToken(user._id)
+
+        const logedInUser = await User.findById(user._id).select('-passwordHash -refreshToken -createdAt -updatedAt -__v')
+
+        if(!logedInUser){
+            throw new apiError(500, "something went wrong while logging in user")
+        }
 
         const RefreshTokenCookieOption = {
             ...cookiesOptions,
@@ -106,7 +115,7 @@ const login = asyncHandler(async (req, res) => {
             ...cookiesOptions,
             expires: new Date(Date.now() + JWT_ACCESS_TOKEN_EXPIRY * 60 * 1000)
         }
-        res.status(200).cookie("refreshToken", refreshToken, RefreshTokenCookieOption).cookie("accessToken", accessToken, accessTokenCookieOptions).json(new apiResponse(200, { accessToken, refreshToken }, "User logged in successfully")) //remove access and refresh token from response in production mode
+        res.status(200).cookie("refreshToken", refreshToken, RefreshTokenCookieOption).cookie("accessToken", accessToken, accessTokenCookieOptions).json(new apiResponse(200, { logedInUser }, "User logged in successfully")) //remove access and refresh token from response in production mode
     } catch (error) {
         throw new apiError(500, "something went wrong while logging in user")
     }
@@ -116,14 +125,14 @@ const login = asyncHandler(async (req, res) => {
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies.refreshToken || req.headers.authorization?.split(" ")[1]
 
-
     if (!incomingRefreshToken) {
         throw new apiError(401, "Refresh token is required")
     }
+
     try {
         const decodedToken = jwt.verify(incomingRefreshToken, JWT_REFRESH_SECRET)
         const user = await User.findById(decodedToken?.id)
-
+        
         if (!user) {
             throw new apiError(401, "Invalid refresh token")
         }
