@@ -5,6 +5,7 @@ import express from "express";
 import eventRoute from "./routes/event.route.js";
 import swapRoute from "./routes/swap.route.js";
 import authRoute from "./routes/auth.route.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -16,7 +17,7 @@ app.use(cors({
     origin: CLIENT_URL,
     credentials: true,
 }));
-
+app.use(cookieParser());
 
 app.get("/api/health", (req, res) => {
     res.status(200).send("Server is healthy");
